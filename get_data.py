@@ -1,11 +1,11 @@
-
 import customtkinter as ctk
 import threading
 import time
 import serial
-
+import serial.tools.list_ports
+from CTkMessagebox import CTkMessagebox
 from tkinter import filedialog
-
+ports = serial.tools.list_ports.comports()
 # Initialize variables to store user inputs
 selected_port = ""
 output_file_name = ""
@@ -13,7 +13,22 @@ output_path = ""
 baud_rate_val = ""
 # Create a flag to control the data gathering thread
 data_gathering = False
-
+packet = b" "
+def baud_rate_test(packet = b' '):
+    for port, desc, hwid in sorted(ports):
+        data = "{}: {} [{}]".format(port, desc, hwid)
+    ser = serial.Serial(port)
+    ser.timeout = 0.5
+    for baudrate in ser.BAUDRATES:
+        if 300 <= baudrate <= 115200:
+            ser.baudrate = baudrate
+            ser.write(packet)
+            resp = ser.readall()
+            if resp == packet:
+                return baudrate
+    baud_rate.set(baudrate)
+    ard_port.set(port)
+    CTkMessagebox(message=[data,baudrate])
 # Function to gather data in a separate thread
 def gather_data_thread():
     global selected_port
@@ -21,16 +36,22 @@ def gather_data_thread():
     global output_file_name
     global output_path
     global baud_rate_val
+    global data_gathering  # Add this line
 
-    with open(output_path + "/" + output_file_name, 'w') as file:
-        time.sleep(0.5)
+    try:
+        with open(output_path + "/" + output_file_name, 'w') as file:
+            time.sleep(0.5)
 
-        ser = serial.Serial(selected_port, baud_rate_val, timeout=1.5)
-        while data_gathering:
-            data = ser.readline().decode().strip()
-            file.write(data + '\n')
-            file.flush()
-            print(data)
+            ser = serial.Serial(selected_port, baud_rate_val, timeout=1.5)
+            while data_gathering:
+                data = ser.readline().decode().strip()
+                file.write(data + '\n')
+                file.flush()
+                print(data)
+    except Exception as e:
+        show_error_message(f"An error occurred: {str(e)}")
+        data_gathering = False  # Stop data gathering on error
+        toggle_button.configure(text="Start gathering")  # Change button text
 
 # Function to start/stop data gathering
 def toggle_data_gathering():
@@ -46,9 +67,6 @@ def toggle_data_gathering():
         data_gathering = False
         toggle_button.configure(text="Start gathering")
     else:
-        data_gathering = True
-        toggle_button.configure(text="Stop gathering")
-
         # Get the selected port from the ComboBox
         selected_port = ard_port.get()
 
@@ -61,6 +79,8 @@ def toggle_data_gathering():
         # Start the data gathering thread
         data_thread = threading.Thread(target=gather_data_thread)
         data_thread.start()
+        data_gathering = True
+        toggle_button.configure(text="Stop gathering")
 
 def on_baud_rate_select(event):
     global selected_baud_rate
@@ -86,7 +106,7 @@ baud_rate_label.grid(row=0, column=1, columnspan=1, sticky="e")
 baud_rate = ctk.CTkComboBox(root, values=["9600", "115200", "57600", "38400", "19200", "14400", "1200", "300"])
 baud_rate.grid(row=0, column=2, pady=10, padx=20)
 baud_rate.set("9600")
-  # Bind the event handler
+baud_rate.bind("<<ComboboxSelected>>", on_baud_rate_select)  # Bind the event handler
 
 file_label = ctk.CTkLabel(root, text="Name for the output file")
 file_label.grid(row=1, padx=15)
@@ -112,6 +132,8 @@ browse_button.grid(row=2, column=2)
 toggle_button = ctk.CTkButton(root, command=toggle_data_gathering, text="Start gathering", width=55, height=35)
 toggle_button.grid(row=3, column=0, columnspan=3, pady=10)
 
+fetch_com_button = ctk.CTkButton(root, text="Fetch COM Ports", command=baud_rate_test, width=30, height=20)
+fetch_com_button.grid(row=3, column=1,columnspan=2, padx=30, pady=30)
 print("Selected Port:", selected_port)
 print("Output File Name:", output_file_name)
 print("Output Path:", output_path)
