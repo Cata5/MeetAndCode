@@ -1,8 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import tkinter.filedialog 
 # Read data from the Excel file
-df = pd.read_excel("formatted_data.xlsx")
+df = pd.read_excel(tkinter.filedialog.askopenfilename())
 
 # Convert the 'Time' column to datetime
 df['Time'] = pd.to_datetime(df['Time'])
@@ -22,6 +22,9 @@ plt.grid(True)
 # Customize the chart (if needed)
 plt.ylabel("Values")
 plt.legend(loc='upper left')
+
+# Save the chart as an image (e.g., PNG)
+plt.savefig("sensor_data_chart.png")
 
 # Show the chart
 plt.show()

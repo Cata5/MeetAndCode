@@ -142,8 +142,5 @@ print("Output Path:", output_path)
 print("Selected Baud Rate:", baud_rate_val)
 root.mainloop()
 
-# After the Tkinter main loop exits, you can access the values:
-print("Selected Port:", selected_port)
-print("Output File Name:", output_file_name)
-print("Output Path:", output_path)
-print("Selected Baud Rate:", baud_rate_val)
+
+
